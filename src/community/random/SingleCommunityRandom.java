@@ -13,9 +13,16 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Vector;
 
+import main.AverageClusteringCoefficientCalculator;
+
+import org.apache.commons.collections15.Transformer;
+
+import edu.uci.ics.jung.algorithms.shortestpath.DistanceStatistics;
 import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import edu.uci.ics.jung.graph.UndirectedSparseMultigraph;
 import edu.uci.ics.jung.graph.util.EdgeType;
+import edu.uci.ics.jung.graph.util.Pair;
 import util.Edge;
 import util.LFRNetwork;
 import util.TxtReader;
@@ -28,7 +35,10 @@ import util.Vertex;
  */
 public class SingleCommunityRandom {
 	
-	public void SingleCommunityRandomIncrem(UndirectedSparseMultigraph<String, String> graph, String filename, 
+	private final static double scalePercent = 0.1;
+    private final static int nodeNum = 1000000;
+	
+	public void SingleCommunityRandomIncrem(UndirectedSparseGraph<String, String> graph, String filename, 
 			int maxdegree, int percent) throws IOException {
 		
 		LFRNetwork lfrnetwork = null;
@@ -53,7 +63,7 @@ public class SingleCommunityRandom {
 		
 		int orgVertexCount = graph.getVertexCount();
 	    int orgEdgeCount = graph.getEdgeCount();
-	    int incremental = (int)(orgVertexCount*percent*0.1);
+	    int incremental = (int)(orgVertexCount*percent*scalePercent);
 	    
 	    for(int i = 0; i < incremental; i++) {	//增加节点数
 	    	Random random = new Random();
@@ -81,23 +91,41 @@ public class SingleCommunityRandom {
 		System.out.println(graph.getVertexCount());
   		System.out.println(graph.getEdgeCount());
   		
+  		AverageClusteringCoefficientCalculator avgcc = new AverageClusteringCoefficientCalculator(graph);
+		avgcc.getCC();
+		TxtWriter.appendToFile(avgcc.getCC() + ", ", new File("file/100w/community_random/AverageClusteringCoefficient.dat"), "UTF-8");
+		
+		
+/*		Transformer<String, Double> distances = DistanceStatistics.averageDistances(graph);
+		double sum = 0;
+		for(String v : graph.getVertices()) {
+			//System.out.println(v + "\t" + distances.transform(v).doubleValue());
+			sum += distances.transform(v).doubleValue();
+		}
+		sum = sum/graph.getEdgeCount();
+		TxtWriter.appendToFile(sum + ", ", new File("file/10w/community_random/averageDistances.dat"), "UTF-8");
+*/  		
   		StringBuilder sbdegree = new StringBuilder();
 		for(String v : graph.getVertices()) {
-			if (Integer.parseInt(v) <= 10000) {
+			if (Integer.parseInt(v) <= nodeNum) {
 				sbdegree.append(graph.degree(v));
 				sbdegree.append("\n");
 			}
 		}
-		TxtWriter.saveToFile(sbdegree.toString(), new File("file/1w/community_random/degree_" + percent + ".dat"), "UTF-8");
+		TxtWriter.saveToFile(sbdegree.toString(), new File("file/100w/community_random/degree_" + percent + ".dat"), "UTF-8");		
+	
 		
-	  /*  Collection<String> edges = graph.getEdges();
+	    Collection<String> edges = graph.getEdges();
 	    StringBuilder sbedge = new StringBuilder();
 	    for(String edge : edges) {
-	    	sbedge.append(edge);
+	    	Pair<String> nodepair = graph.getEndpoints(edge);
+	    	sbedge.append(nodepair.getFirst());
+	    	sbedge.append(",");
+	    	sbedge.append(nodepair.getSecond());
 	    	sbedge.append("\n");
 	    }
 	    
-	    TxtWriter.saveToFile(sbedge.toString(), new File("file/1w/community_random/network_" + percent + ".dat"), "UTF-8");*/
+	    TxtWriter.saveToFile(sbedge.toString(), new File("file/100w/community_random/edge_" + percent + ".dat"), "UTF-8");
 }
 	
 	public ArrayList<Integer> createRandom(int singleCommunityScale) {

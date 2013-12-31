@@ -15,8 +15,14 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
 
+import main.AverageClusteringCoefficientCalculator;
+
+import org.apache.commons.collections15.Transformer;
+
+import edu.uci.ics.jung.algorithms.shortestpath.DistanceStatistics;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.MultiGraph;
+import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import edu.uci.ics.jung.graph.UndirectedSparseMultigraph;
 import edu.uci.ics.jung.graph.util.EdgeType;
 import edu.uci.ics.jung.graph.util.Pair;
@@ -39,8 +45,10 @@ public class SingleCommunityBA {
 	private int mNumEdgesToAttachPerStep = 10;
 	private Random mRandom;
 	private int random_seed = 0;
+	private final static int nodeNum = 1000000;
+	private final static double scalePercent = 0.1;
 	
-	public void SingleCommunityBAGenerator(UndirectedSparseMultigraph<String, String> graph, String filename,
+	public void SingleCommunityBAGenerator(UndirectedSparseGraph<String, String> graph, String filename,
 			int maxdegree, int percent) throws IOException {
 		
 		mGraph = graph;	// 图的全局变量
@@ -69,7 +77,7 @@ public class SingleCommunityBA {
 		
 		int orgVertexCount = graph.getVertexCount();
 	    int orgEdgeCount = graph.getEdgeCount();
-	    int incremental = (int)(orgVertexCount*percent*0.1);
+	    int incremental = (int)(orgVertexCount*percent*scalePercent);
 	    
 	    for(int i = 0; i < incremental; i++) {	//增加节点数
 	    	Random random = new Random();
@@ -94,23 +102,41 @@ public class SingleCommunityBA {
 	    System.out.println(graph.getVertexCount());
 		System.out.println(graph.getEdgeCount());
 		
+		AverageClusteringCoefficientCalculator avgcc = new AverageClusteringCoefficientCalculator(graph);
+		avgcc.getCC();
+		TxtWriter.appendToFile(avgcc.getCC() + ", ", new File("file/100w/community_ba/AverageClusteringCoefficient.dat"), "UTF-8");
+	
+		
+/*		Transformer<String, Double> distances = DistanceStatistics.averageDistances(graph);
+		double sum = 0;
+		for(String v : graph.getVertices()) {
+			//System.out.println(v + "\t" + distances.transform(v).doubleValue());
+			sum += distances.transform(v).doubleValue();
+		}
+		sum = sum/graph.getEdgeCount();
+		TxtWriter.appendToFile(sum + ", ", new File("file/10w/community_ba/averageDistances.dat"), "UTF-8");
+*/		
 		StringBuilder sbdegree = new StringBuilder();
 		for(String v : graph.getVertices()) {
-			if (Integer.parseInt(v) <= 10000) {
+			if (Integer.parseInt(v) <= nodeNum) {
 				sbdegree.append(graph.degree(v));
 				sbdegree.append("\n");
 			}
 		}
-		TxtWriter.saveToFile(sbdegree.toString(), new File("file/1w/community_ba/degree_" + percent + ".dat"), "UTF-8");
+		TxtWriter.saveToFile(sbdegree.toString(), new File("file/100w/community_ba/degree_" + percent + ".dat"), "UTF-8");
 		
-		/*Collection<String> edges = graph.getEdges();
+		
+		Collection<String> edges = graph.getEdges();
 		StringBuilder sbedge = new StringBuilder();
 		for(String edge : edges) {
-			sbedge.append(edge);
-			sbedge.append("\n");
-		}
+	    	Pair<String> nodepair = graph.getEndpoints(edge);
+	    	sbedge.append(nodepair.getFirst());
+	    	sbedge.append(",");
+	    	sbedge.append(nodepair.getSecond());
+	    	sbedge.append("\n");
+	    }
 
-		TxtWriter.saveToFile(sbedge.toString(), new File("file/1w/community_ba/network_" + percent + ".dat"), "UTF-8");*/
+		TxtWriter.saveToFile(sbedge.toString(), new File("file/100w/community_ba/edge_" + percent + ".dat"), "UTF-8");
 	}
 	
 	public int[] randomChooseCommunity() {
@@ -190,7 +216,7 @@ public class SingleCommunityBA {
         // (all new edges in a timestep should be added in parallel)
         Set<Pair<String>> added_pairs = new HashSet<Pair<String>>(mNumEdgesToAttachPerStep*3);
         
-        for (int i = 0; i < mNumEdgesToAttachPerStep; i++) 
+        //for (int i = 0; i < mNumEdgesToAttachPerStep; i++) 
         	createRandomEdge(preexistingNodes, newVertex, added_pairs);
         
         for (Pair<String> pair : added_pairs)

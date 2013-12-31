@@ -16,14 +16,20 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
 
+import main.AverageClusteringCoefficientCalculator;
+
+import org.apache.commons.collections15.Transformer;
+
 import util.Edge;
 import util.Factories;
 import util.LFRNetwork;
 import util.TxtWriter;
 import util.Vertex;
 import edu.uci.ics.jung.algorithms.generators.random.BarabasiAlbertGenerator;
+import edu.uci.ics.jung.algorithms.shortestpath.DistanceStatistics;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.MultiGraph;
+import edu.uci.ics.jung.graph.UndirectedSparseGraph;
 import edu.uci.ics.jung.graph.UndirectedSparseMultigraph;
 import edu.uci.ics.jung.graph.util.EdgeType;
 import edu.uci.ics.jung.graph.util.Pair;
@@ -37,18 +43,20 @@ public class BAGenerator {
 	
 	private int mElapsedTimeSteps;
 	private int random_seed = 0;
-	private int num_tests = 100;
-	private int num_timesteps = 10;
+	private int num_tests = 1000;
+	private int num_timesteps = 100;
 	private Graph<String, String> mGraph = null;
     private int mNumEdgesToAttachPerStep = 1;
     private Random mRandom;
     protected List<String> vertex_index;
     protected Map<String, Integer> index_vertex;
+    private final static int nodeNum = 100000;
+    
 	
     LFRNetwork graphInfo =null; 
 	Vector<LFRNetwork> graphInfos = new Vector<LFRNetwork>();
 	
-	public void GenerateBarabasiAlbert(UndirectedSparseMultigraph<String, String> graph, int maxdegree, int percent) throws IOException {
+	public void GenerateBarabasiAlbert(UndirectedSparseGraph<String, String> graph, int maxdegree, int percent) throws IOException {
 		
         mGraph = graph;
         initialize(graph);
@@ -61,23 +69,41 @@ public class BAGenerator {
         System.out.println(graph.getVertexCount());
   		System.out.println(graph.getEdgeCount());
   		
+  		AverageClusteringCoefficientCalculator avgcc = new AverageClusteringCoefficientCalculator(graph);
+		avgcc.getCC();
+		TxtWriter.appendToFile(avgcc.getCC() + ", ", new File("file/100w/network_ba/AverageClusteringCoefficient.dat"), "UTF-8");
+		
+		
+/*		Transformer<String, Double> distances = DistanceStatistics.averageDistances(graph);
+		double sum = 0;
+		for(String v : graph.getVertices()) {
+			//System.out.println(v + "\t" + distances.transform(v).doubleValue());
+			sum += distances.transform(v).doubleValue();
+		}
+		sum = sum/graph.getEdgeCount();
+		TxtWriter.appendToFile(sum + ", ", new File("file/10w/network_ba/averageDistances.dat"), "UTF-8");
+*/  		
   		StringBuilder sbdegree = new StringBuilder();
 		for(String v : graph.getVertices()) {
-			if (Integer.parseInt(v) <= 10000) {
+			if (Integer.parseInt(v) <= nodeNum) {
 				sbdegree.append(graph.degree(v));
 				sbdegree.append("\n");
 			}
 		}
-		TxtWriter.saveToFile(sbdegree.toString(), new File("file/1w/network_ba/degree_" + percent + ".dat"), "UTF-8");
+		TxtWriter.saveToFile(sbdegree.toString(), new File("file/100w/network_ba/degree_" + percent + ".dat"), "UTF-8");	
+
 		
-	    /*Collection<String> edges = graph.getEdges();
+	    Collection<String> edges = graph.getEdges();
 	    StringBuilder sbedge = new StringBuilder();
 	    for(String edge : edges) {
-	    	sbedge.append(edge);
+	    	Pair<String> nodepair = graph.getEndpoints(edge);
+	    	sbedge.append(nodepair.getFirst());
+	    	sbedge.append(",");
+	    	sbedge.append(nodepair.getSecond());
 	    	sbedge.append("\n");
 	    }
 	    
-	    TxtWriter.saveToFile(sbedge.toString(), new File("file/1w/network_ba/network_" + percent + ".dat"), "UTF-8");*/
+	    TxtWriter.saveToFile(sbedge.toString(), new File("file/100w/network_ba/edge_" + percent + ".dat"), "UTF-8");
 	}
 	
 	 
